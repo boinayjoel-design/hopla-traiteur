@@ -1,3 +1,8 @@
+bash
+
+cat /home/claude/index.html
+Sortie
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -189,6 +194,20 @@ textarea{resize:vertical;min-height:50px}
 .save-st.ok{color:#60B870}
 .save-st.err{color:#D05050}
 
+/* GALERIE CARROUSEL */
+.galerie-wrap{margin:0 14px 14px;position:relative;overflow:hidden;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.galerie-track{display:flex;transition:transform 0.4s cubic-bezier(0.4,0,0.2,1)}
+.galerie-slide{min-width:100%;position:relative}
+.galerie-slide img{width:100%;height:220px;object-fit:cover;display:block}
+.galerie-slide video{width:100%;height:220px;object-fit:cover;display:block}
+.galerie-dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:5px}
+.galerie-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.35);cursor:pointer;transition:background 0.2s}
+.galerie-dot.active{background:#fff}
+.galerie-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:1.1rem;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.galerie-btn-prev{left:8px}
+.galerie-btn-next{right:8px}
+.galerie-tag{position:absolute;top:10px;left:10px;font-size:0.58rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--chalk);background:rgba(0,0,0,0.55);padding:3px 8px;border-radius:18px}
+
 /* LOADING */
 .loading{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999}
 .spinner{width:34px;height:34px;border:3px solid var(--line-strong);border-top-color:var(--red);border-radius:50%;animation:spin 0.8s linear infinite}
@@ -247,6 +266,13 @@ textarea{resize:vertical;min-height:50px}
     <div class="hero-sub" id="accueilSub">Cuisine faite maison · Produits frais</div>
   </div>
   <div class="acc-cards" id="accueilCards"></div>
+  <div class="galerie-wrap" id="galerieWrap" style="display:none">
+    <div class="galerie-track" id="galerieTrack"></div>
+    <button class="galerie-btn galerie-btn-prev" onclick="galerieNav(-1)">&#8249;</button>
+    <button class="galerie-btn galerie-btn-next" onclick="galerieNav(1)">&#8250;</button>
+    <div class="galerie-dots" id="galerieDots"></div>
+    <div class="galerie-tag">📸 Galerie</div>
+  </div>
   <div class="mign-banner" onclick="goPage('mignardises')">
     <div class="mign-banner-glow"></div>
     <div class="mign-banner-tag">✦ Événements & Réceptions</div>
@@ -334,6 +360,7 @@ textarea{resize:vertical;min-height:50px}
       <div class="admin-nav-card" onclick="goAdminSection('mignardises')"><div class="anc-icon">🥂</div><div class="anc-body"><div class="anc-title">Mignardises</div><div class="anc-sub">Apéro · Dessert · Items</div></div><div class="anc-arrow">›</div></div>
       <div class="admin-nav-card" onclick="goAdminSection('ventes')"><div class="anc-icon">📊</div><div class="anc-body"><div class="anc-title">Suivi des ventes</div><div class="anc-sub">Comptage après service</div></div><div class="anc-arrow">›</div></div>
       <div class="admin-nav-card" onclick="goAdminSection('evenements')"><div class="anc-icon">🎉</div><div class="anc-body"><div class="anc-title">Événements</div><div class="anc-sub">Ajouter ou masquer</div></div><div class="anc-arrow">›</div></div>
+      <div class="admin-nav-card" onclick="goAdminSection('galerie')"><div class="anc-icon">📸</div><div class="anc-body"><div class="anc-title">Galerie</div><div class="anc-sub">Photos & vidéos · Accueil</div></div><div class="anc-arrow">›</div></div>
       <div class="admin-nav-card" onclick="goAdminSection('securite')"><div class="anc-icon">🔒</div><div class="anc-body"><div class="anc-title">Sécurité & Slogan</div><div class="anc-sub">Mot de passe · Slogan</div></div><div class="anc-arrow">›</div></div>
     </div>
 
@@ -373,7 +400,7 @@ textarea{resize:vertical;min-height:50px}
         <button class="btn btn-ghost btn-sm" onclick="toggleAddForm()">+ Ajouter un plat</button>
         <div class="add-form" id="addPlatForm" style="display:none">
           <div class="add-form-title">Nouveau plat</div>
-          <div class="form-row"><label>Catégorie</label><select id="new_cat"><option value="plats">Plats chauds</option><option value="salades">Salades</option><option value="extras">Extras & Boissons</option></select></div>
+          <div class="form-row"><label>Catégorie</label><select id="new_cat"><option value="plats">Plats chauds</option><option value="salades">Salades</option><option value="desserts">Desserts</option><option value="extras">Extras & Boissons</option></select></div>
           <div class="form-row"><label>Nom</label><input type="text" id="new_nom" placeholder="Filet mignon sauce champignons"></div>
           <div class="form-row"><label>Description (optionnel)</label><textarea id="new_desc" style="min-height:38px" placeholder="Accompagnement, cuisson..."></textarea></div>
           <div class="form-row"><label>Allergènes</label>
@@ -464,6 +491,19 @@ textarea{resize:vertical;min-height:50px}
       <button class="btn btn-ghost btn-sm" onclick="addEvt()">+ Ajouter un événement</button>
     </div>
 
+    <div id="adminSectionGalerie" style="display:none">
+      <button class="back-btn" onclick="goAdminHome()">← Retour</button>
+      <div class="admin-title">📸 Galerie</div>
+      <div style="font-size:0.75rem;color:var(--muted);margin:3px 0 12px">Photos et vidéos affichées en carrousel sur l'accueil.</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:rgba(196,30,30,0.06);border:2px dashed rgba(196,30,30,0.3);border-radius:9px;padding:13px;margin-bottom:12px" for="galerieUploadInput">
+        <span style="font-size:1.4rem">📷</span>
+        <span style="font-size:0.8rem;color:var(--muted)">Ajouter une photo ou vidéo</span>
+        <input type="file" id="galerieUploadInput" accept="image/*,video/*" multiple style="display:none" onchange="handleGalerieUpload(event)">
+      </label>
+      <div id="galerieUploadStatus" style="font-size:0.75rem;min-height:16px;margin-bottom:8px"></div>
+      <div id="galerieAdminList" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
+
     <div id="adminSectionSecurite" style="display:none">
       <button class="back-btn" onclick="goAdminHome()">← Retour</button>
       <div class="admin-title">🔒 Sécurité & Slogan</div>
@@ -543,7 +583,7 @@ function defaultData(){
     truck:{slogan:'Cuisine faite maison · Produits frais',semaine:'Menu de la semaine'},
     foodtruck:{lieu:'',horaires:'Jeudi · 11h30–13h30',extra:'',statut:'open'},
     magasin:{adresse:'Route de Porrentruy 11, 2942 Alle',horaires:'Lundi–Vendredi · 10h00–18h00',extra:'Produits locaux & fait maison',statut:'open'},
-    evenements:[],photoMenu:'',
+    evenements:[],photoMenu:'',galerie:[],
     specibox:{nom:'SpatzleBox Lardon Champi Petits Pois',desc:'Spätzle maison, lardons fumés, champignons, petits pois',source:'Lardon fumé · Champis · Petits pois',prix_normal:'11',prix_xl:'14',soldout:false,ventes_normal:0,ventes_xl:0},
     plats:[
       {id:1,cat:'plats',nom:'Tranche pannée',desc:'',prix:'14',allergens:['Gluten','Œufs'],soldout:false,ventes:0,photo:''},
@@ -630,6 +670,7 @@ async function init(){
       if(!D.evenements)D.evenements=[];
       if(!D.photoMenu)D.photoMenu='';
       if(!D.mignardises)D.mignardises=[];
+      if(!D.galerie)D.galerie=[];
       if(!D.ventesExtra)D.ventesExtra=[];
       if(D.specibox.ventes_normal==null)D.specibox.ventes_normal=0;
       if(D.specibox.ventes_xl==null)D.specibox.ventes_xl=0;
@@ -682,7 +723,7 @@ function doLogin(){
 }
 
 // ─── ADMIN SECTIONS ──────────────────────────────────────────────────────────
-const ADMIN_SECS=['carte','foodtruck','magasin','mignardises','ventes','evenements','securite'];
+const ADMIN_SECS=['carte','foodtruck','magasin','mignardises','ventes','evenements','galerie','securite'];
 function goAdminHome(){
   document.getElementById('adminHome').style.display='block';
   ADMIN_SECS.forEach(s=>{const el=document.getElementById('adminSection'+s.charAt(0).toUpperCase()+s.slice(1));if(el)el.style.display='none';});
@@ -696,6 +737,7 @@ function goAdminSection(sec){
   window.scrollTo(0,0);
   if(sec==='ventes')renderVentes();
   if(sec==='evenements')renderEvtAdmin();
+  if(sec==='galerie')renderAdminGalerie();
   if(sec==='mignardises')renderAdminMign();
 }
 function populateAdmin(){
@@ -733,6 +775,7 @@ function renderAccueil(){
   cards+=`<div class="acc-card" onclick="goPage('menu')"><div class="acc-card-inner"><div class="acc-card-icon">🍽️</div><div class="acc-card-body"><div class="acc-card-title">La Carte</div><div class="acc-card-desc">${esc(D.truck.semaine||'Menu de la semaine')}</div></div><div class="acc-card-arrow">›</div></div><div class="acc-card-footer"><div class="acc-status"><div class="dot dot-green"></div><span style="color:var(--green)">Disponible</span></div><div class="acc-link">Voir le menu →</div></div></div>`;
   (D.evenements||[]).filter(e=>e.visible&&e.nom).forEach(evt=>{cards+=`<div class="acc-card" onclick="goPage('evenement')"><div class="acc-card-inner"><div class="acc-card-icon">🎉</div><div class="acc-card-body"><div class="acc-card-title">${esc(evt.nom)}</div><div class="acc-card-desc">${evt.date?esc(evt.date):''}</div></div><div class="acc-card-arrow">›</div></div><div class="acc-card-footer"><div class="acc-status"><div class="dot dot-gold"></div><span style="color:var(--gold-light)">À venir</span></div><div class="acc-link">Plus d'infos →</div></div></div>`;});
   document.getElementById('accueilCards').innerHTML=cards;
+  renderGalerieAccueil();
 }
 
 // ─── RENDER MENU ─────────────────────────────────────────────────────────────
@@ -746,7 +789,7 @@ function renderMenu(){
     const prices=so?`<span class="soldout-pill">❌ Épuisée · Revenez demain !</span>`:`<div class="sb-prices">${sb.prix_normal?`<div class="sb-price"><div class="sb-size">Normal</div><div class="sb-amount"><span class="sb-chf">CHF</span>${parseFloat(sb.prix_normal).toFixed(2)}</div></div>`:''} ${sb.prix_xl?`<div class="sb-price"><div class="sb-size">XL</div><div class="sb-amount"><span class="sb-chf">CHF</span>${parseFloat(sb.prix_xl).toFixed(2)}</div></div>`:''}</div>`;
     sbEl.innerHTML=`<div class="specibox-outer"><div class="specibox-card"><div class="sb-glow"></div><div class="sb-top"><div><div class="sb-badge">SpéciBox de la semaine</div><div class="sb-name">${esc(sb.nom)}</div></div><div class="sb-icon">🥡</div></div>${sb.desc?`<div class="sb-desc">${esc(sb.desc)}</div>`:''} ${sb.source?`<div class="sb-source">${esc(sb.source)}</div>`:''} ${prices}</div></div>`;
   }else sbEl.innerHTML='';
-  const cats=[{key:'plats',label:'Plats chauds',icon:'🍽'},{key:'salades',label:'Salades',icon:'🥗'},{key:'extras',label:'Extras & Boissons',icon:'🥤'}];
+  const cats=[{key:'plats',label:'Plats chauds',icon:'🍽'},{key:'salades',label:'Salades',icon:'🥗'},{key:'desserts',label:'Desserts',icon:'🍮'},{key:'extras',label:'Extras & Boissons',icon:'🥤'}];
   let html='';
   cats.forEach(cat=>{
     const items=D.plats.filter(p=>p.cat===cat.key);if(!items.length)return;
@@ -826,7 +869,7 @@ function renderMignardises(){
 
 // ─── ADMIN PLATS ─────────────────────────────────────────────────────────────
 function renderAdminPlats(){
-  const cats=[{key:'plats',label:'Plats chauds'},{key:'salades',label:'Salades'},{key:'extras',label:'Extras & Boissons'}];
+  const cats=[{key:'plats',label:'Plats chauds'},{key:'salades',label:'Salades'},{key:'desserts',label:'Desserts'},{key:'extras',label:'Extras & Boissons'}];
   let html='';
   cats.forEach(cat=>{
     const items=D.plats.filter(p=>p.cat===cat.key);if(!items.length)return;
@@ -975,6 +1018,114 @@ function addMignItem(){
   renderAdminMign();renderMignardises();markDirty();
 }
 function removeMign(id){D.mignardises=D.mignardises.filter(m=>m.id!==id);renderAdminMign();renderMignardises();markDirty();}
+
+// ─── GALERIE CARROUSEL ───────────────────────────────────────────────────────
+let galerieIdx=0,galerieTimer=null;
+const SB_BUCKET='galerie';
+const SB_STORAGE=`${SB_URL}/storage/v1`;
+
+async function sbStorageUpload(file){
+  const ext=file.name.split('.').pop()||'jpg';
+  const path=`media/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const r=await fetch(`${SB_STORAGE}/object/${SB_BUCKET}/${path}`,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if(!r.ok)return null;
+  return`${SB_STORAGE}/object/public/${SB_BUCKET}/${path}`;
+}
+async function sbStorageDelete(url){
+  const path=url.split(`/object/public/${SB_BUCKET}/`)[1];
+  if(!path)return;
+  await fetch(`${SB_STORAGE}/object/${SB_BUCKET}/${path}`,{
+    method:'DELETE',
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+  });
+}
+
+function renderGalerieAccueil(){
+  const items=(D.galerie||[]).filter(g=>g.url);
+  const wrap=document.getElementById('galerieWrap');
+  if(!items.length){if(wrap)wrap.style.display='none';return;}
+  if(wrap)wrap.style.display='block';
+  const track=document.getElementById('galerieTrack');
+  const dots=document.getElementById('galerieDots');
+  if(!track||!dots)return;
+  track.innerHTML=items.map((g,i)=>{
+    if(g.type==='video'){
+      return`<div class="galerie-slide"><video src="${g.url}" autoplay muted loop playsinline></video></div>`;
+    }
+    return`<div class="galerie-slide"><img src="${g.url}" alt="Galerie ${i+1}"></div>`;
+  }).join('');
+  dots.innerHTML=items.map((_,i)=>`<div class="galerie-dot${i===0?' active':''}" onclick="galerieTo(${i})"></div>`).join('');
+  galerieIdx=0;galerieApply();
+  clearInterval(galerieTimer);
+  if(items.length>1)galerieTimer=setInterval(()=>galerieNav(1),4000);
+}
+function galerieApply(){
+  const items=(D.galerie||[]).filter(g=>g.url);
+  const track=document.getElementById('galerieTrack');
+  const dots=document.querySelectorAll('.galerie-dot');
+  if(track)track.style.transform=`translateX(-${galerieIdx*100}%)`;
+  dots.forEach((d,i)=>d.classList.toggle('active',i===galerieIdx));
+}
+function galerieNav(dir){
+  const items=(D.galerie||[]).filter(g=>g.url);
+  galerieIdx=(galerieIdx+dir+items.length)%items.length;
+  galerieApply();
+}
+function galerieTo(i){galerieIdx=i;galerieApply();}
+
+// ─── GALERIE ADMIN ────────────────────────────────────────────────────────────
+async function handleGalerieUpload(e){
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  if(!D.galerie)D.galerie=[];
+  const btn=document.getElementById('galerieUploadInput');
+  const label=btn?btn.previousElementSibling||btn.parentElement:null;
+  const statusEl=document.getElementById('galerieUploadStatus');
+  if(statusEl){statusEl.textContent='Upload en cours…';statusEl.style.color='var(--muted)';}
+  let ok=0,fail=0;
+  for(const file of files){
+    const isVideo=file.type.startsWith('video/');
+    const url=await sbStorageUpload(file);
+    if(url){
+      D.galerie.push({id:Date.now()+Math.random(),type:isVideo?'video':'image',url});
+      ok++;
+    }else{fail++;}
+  }
+  e.target.value='';
+  if(statusEl){
+    if(fail===0){statusEl.textContent=`✅ ${ok} fichier(s) uploadé(s) !`;statusEl.style.color='var(--green)';}
+    else{statusEl.textContent=`⚠️ ${ok} ok, ${fail} échoué(s). Vérif bucket Supabase.`;statusEl.style.color='var(--gold-light)';}
+    setTimeout(()=>{if(statusEl)statusEl.textContent='';},4000);
+  }
+  const saved=await sbSet(D);
+  if(saved){renderAdminGalerie();renderGalerieAccueil();}
+  else if(statusEl){statusEl.textContent='❌ Erreur sauvegarde Supabase';statusEl.style.color='#D05050';}
+}
+async function removeGalerieItem(id){
+  const item=(D.galerie||[]).find(g=>g.id===id);
+  if(!item)return;
+  await sbStorageDelete(item.url);
+  D.galerie=(D.galerie||[]).filter(g=>g.id!==id);
+  await sbSet(D);
+  renderAdminGalerie();renderGalerieAccueil();
+}
+function renderAdminGalerie(){
+  const el=document.getElementById('galerieAdminList');if(!el)return;
+  const items=(D.galerie||[]);
+  if(!items.length){el.innerHTML='<div style="font-size:0.78rem;color:var(--muted)">Aucun média. Ajoute une photo ou vidéo.</div>';return;}
+  el.innerHTML=items.map(g=>`
+    <div style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:9px;padding:8px 10px">
+      ${g.type==='video'
+        ?`<video src="${g.url}" style="width:60px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0" muted></video>`
+        :`<img src="${g.url}" style="width:60px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">`}
+      <div style="flex:1;font-size:0.78rem;color:var(--muted)">${g.type==='video'?'🎬 Vidéo':'🖼️ Photo'}</div>
+      <button class="btn btn-del btn-sm" onclick="removeGalerieItem(${g.id})">✕</button>
+    </div>`).join('');
+}
 
 // ─── LANGUE ──────────────────────────────────────────────────────────────────
 const LANG_MAP={
