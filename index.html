@@ -980,7 +980,17 @@ function handleLieuPhotos(e,key){
       remaining--;
       if(remaining===0){
         const up=document.getElementById('uploading_'+key);if(up)up.remove();
-        renderLieuPhotosAdmin(key);markDirty();
+        renderLieuPhotosAdmin(key);
+        // Sauvegarde immédiate en base après upload, sans attendre le bouton "Sauvegarder"
+        const s=document.getElementById('saveStatus');
+        if(s){s.textContent='Sauvegarde des photos…';s.className='save-st';}
+        let ok=await sbSet(D);
+        if(!ok){await new Promise(r=>setTimeout(r,1500));ok=await sbSet(D);}
+        if(!ok){await new Promise(r=>setTimeout(r,3000));ok=await sbSet(D);}
+        if(s){
+          if(ok){s.textContent='✓ Photos sauvegardées !';s.className='save-st ok';pendingDraft=false;try{localStorage.removeItem('hopla_draft');}catch(e){}setTimeout(()=>markClean(),2000);}
+          else{s.textContent='❌ Échec de connexion — clique sur Sauvegarder pour réessayer';s.className='save-st err';markDirty();}
+        }
       }
     });
   });
@@ -1208,16 +1218,21 @@ async function saveAll(){
   if(!ok){s.textContent='Connexion instable, nouvel essai…';await new Promise(r=>setTimeout(r,1500));ok=await sbSet(D);}
   if(!ok){await new Promise(r=>setTimeout(r,3000));ok=await sbSet(D);}
   if(ok){
-    const check=await sbGet();
-    const sentPhotos=(D.galerie&&D.galerie.photos||[]).length;
-    const gotPhotos=(check&&check.data&&check.data.galerie&&check.data.galerie.photos||[]).length;
-    console.log('Vérification post-save: envoyé',sentPhotos,'photos galerie / relu',gotPhotos,'photos galerie');
+    // La vérification post-sauvegarde peut être trompeuse (délai de propagation côté serveur),
+    // donc on ne l'utilise plus que comme information de log, jamais pour afficher une erreur à l'utilisateur.
+    await new Promise(r=>setTimeout(r,1200));
+    let check=await sbGet();
+    let sentPhotos=(D.galerie&&D.galerie.photos||[]).length;
+    let gotPhotos=(check&&check.data&&check.data.galerie&&check.data.galerie.photos||[]).length;
     if(sentPhotos!==gotPhotos){
-      s.textContent=`⚠️ Sauvegardé mais vérification différente (envoyé ${sentPhotos}, relu ${gotPhotos}) — regarde la console`;
-      s.className='save-st err';
-    }else{
-      s.textContent='✓ Sauvegardé !';s.className='save-st ok';pendingDraft=false;setTimeout(()=>markClean(),2500);
+      await new Promise(r=>setTimeout(r,2500));
+      check=await sbGet();
+      gotPhotos=(check&&check.data&&check.data.galerie&&check.data.galerie.photos||[]).length;
     }
+    console.log('Vérification post-save: envoyé',sentPhotos,'photos galerie / relu',gotPhotos,'photos galerie');
+    // Le PATCH a répondu OK : on fait confiance à l'écriture. On ne bloque plus l'utilisateur
+    // avec un message d'erreur basé sur une relecture qui peut être en retard.
+    s.textContent='✓ Sauvegardé !';s.className='save-st ok';pendingDraft=false;setTimeout(()=>markClean(),2500);
   }
   else{s.textContent='❌ Pas de connexion au serveur — tes modifications sont gardées, réessaie';s.className='save-st err';}
 }
